@@ -1,0 +1,27 @@
+# Ignore object files and compiled binaries
+*.o
+*.out
+*.a
+*.so
+*.exe
+
+# Ignore temporary files
+*.swp
+*.tmp
+*.log
+*.bak
+*.~*
+
+# Ignore build directories
+build/
+dist/
+
+# Ignore debugging files
+*.core
+
+# Ignore Visual Studio Code settings
+.vscode/
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
