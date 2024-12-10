@@ -8,6 +8,9 @@
 #define ctrl(x) ((x)& 0x1f)
 #define SHELL "[c-shell]~ "
 #define ENTER 10
+#define UP_ARROW 259
+#define DOWN_ARROW 258
+
 
 #define DATA_START_CAPACITY 128 // Initial capacity for dynamic arrays
 
@@ -54,39 +57,84 @@ typedef struct
     size_t capacity;    
 }Strings;
 
+
+void clear_line(int line) {
+    move(line, 0);  // Move cursor to the start of the line
+    clrtoeol();     // Clear everything to the end of the line
+}
+
 int main()
 {
     initscr();  // Initializes the ncurses environment for screen manipulation
     raw();      // Disables line buffering, allowing real-time input capture.
     noecho();   // Prevents typed characters from being automatically displayed.
+    keypad(stdscr, TRUE); // Enable arrow key processing
     int ch;
+    int history_index = -1;
     String command = {0};
     Strings command_his = {0};
+    DA_APPEND(&command_his, command);
     
 
     bool QUIT = false; 
     size_t line = 0;
     while(!QUIT){
         mvprintw(line, 0, SHELL);
-        mvprintw(line , 0+ sizeof(SHELL)-1,"%.*s",(int)command.count, command.data);
+        mvprintw(line , 0 + sizeof(SHELL) - 1, "%.*s", (int)command.count, command.data);
         ch = getch();
         switch(ch){
             case ctrl('q'):  // quit 
                 QUIT = true;
                 break;
+
             case ENTER: // enter 
-                line ++;             
-                mvprintw(line, 0, "`command` is not recognized as internal or external");
+                line++;             
+                mvprintw(line, 0, "`%.*s` is not recognized as internal or external", (int)command.count, command.data);
                 line++;  
                 DA_APPEND(&command_his, command);
-                free(command.data);
-                command = (String){0};
+                command = (String){0};  // Reset command
+                history_index = -1;  // Reset the history index
                 break;
+            
+            case UP_ARROW:
+                if (command_his.count > 0) {
+                    if (history_index == -1) {
+                        // Start at the last history command
+                        history_index = 0;
+                    } else if (history_index < (int)command_his.count - 1) {
+                    // Move one step back in history
+                    history_index++;
+                }
+
+        // Fetch the command from history
+        clear_line(line); // Clear the current line
+        command = command_his.data[command_his.count - 1 - history_index];
+    }
+                break;
+
+            case DOWN_ARROW:
+                if (history_index > -1) {
+                    history_index--;
+                    clear_line(line);
+                    command = command_his.data[command_his.count - 1 - history_index];
+                } else {
+                    clear_line(line);
+                    command = (String){0};  // Clear the current command when reaching the newest one
+                }
+                break;
+            
 
             default: 
                 DA_APPEND(&command, ch);
                 break;
         }
+    }
+
+    if (command.data != NULL) {
+        free(command.data);  // Free the last command data if allocated
+    }
+    if (command_his.data != NULL) {
+        free(command_his.data);  // Free history data
     }
 
     refresh();
