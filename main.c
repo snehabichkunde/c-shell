@@ -2,8 +2,10 @@
 #include<stdbool.h>
 #include<stdlib.h>
 #include<string.h>
-
+#include <errno.h>   //represent error codes.
 #include<ncurses.h>
+#include<unistd.h>
+#include<sys/wait.h>
 
 #define ctrl(x) ((x)& 0x1f)
 #define SHELL "[c-shell]~ "
@@ -63,6 +65,58 @@ void clear_line(int line) {
     clrtoeol();     // Clear everything to the end of the line
 }
 
+void handle_command(char *file, char **args)
+{
+	int status;
+	int pid = fork();
+	if(pid < 0) { // error
+		fprintf(stderr, "error %s", strerror(errno));
+		return;
+	} else if(!pid) { // child process
+		if(execvp(args[0], args) < 0) {
+			fprintf(stderr, "%s\n", strerror(errno));
+		}
+		exit(1);
+	} else { // parent process
+		int wpid = waitpid(pid, &status, 0);
+		while(!WIFEXITED(status) && !WIFSIGNALED(status)) {
+			wpid = waitpid(pid, &status, 0);
+		}
+		(void)wpid;
+	}	
+}
+
+
+char *str_to_cstr(String str)
+{
+    char * cstr = malloc(sizeof(char)*str.count +1);
+    memcpy(cstr, str.data, sizeof(char)*str.count);
+    cstr[str.count] = '\0';
+    return cstr;
+}
+
+char ** parse_command(String command){
+    char *cmd_cstr = str_to_cstr(command);
+    char *cur = strtok(cmd_cstr, " ");
+    if(cur == NULL){
+        //free(cmd_cstr);
+        return NULL;
+    }
+    size_t args_s = 8;
+    char ** args = malloc(sizeof(char*)*args_s);
+    size_t args_cur = 0;
+    while(cur!= NULL){
+        if(args_cur >= args_s){
+            args_s *= 2;
+            args = realloc(args, sizeof(char*)*args_s);
+        }
+        args[args_cur++] = cur;
+        cur = strtok(NULL, " ");
+    }
+    
+    return args;
+}
+
 int main()
 {
     initscr();  // Initializes the ncurses environment for screen manipulation
@@ -88,9 +142,11 @@ int main()
                 break;
 
             case ENTER: // enter 
-                line++;             
-                mvprintw(line, 0, "`%.*s` is not recognized as internal or external", (int)command.count, command.data);
                 line++;  
+                clear_line(line);    
+                char **args = parse_command(command);
+                line++; 
+                handle_command(args[0], args);        
                 DA_APPEND(&command_his, command);
                 command = (String){0};  // Reset command
                 history_index = -1;  // Reset the history index
