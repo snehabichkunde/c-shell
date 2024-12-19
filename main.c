@@ -77,7 +77,9 @@ void clear_line(size_t line, size_t width) {
 }
 
 
-void handle_command(char **args, size_t *line) {
+
+
+void execute_command(char **args, size_t *line) {
     char buf[4096] = {0};
 
     int filedes[2];
@@ -128,6 +130,35 @@ void handle_command(char **args, size_t *line) {
 }
 
 
+void handle_command(char** args, size_t* line){
+    if(*args == NULL){
+        *line +=1;
+        mvprintw(*line, 0, "error: no command");
+        return;
+    }
+    if(strcmp(args[0], "exit")==0){
+        int exit_code = 0;
+        if(args[1]!=NULL){
+            exit_code = strtol(args[1], NULL, 10);
+        }
+        endwin();
+        printf("exit\n");
+        exit(exit_code);
+    }
+    else if (strcmp(args[0], "cd")==0){
+        char *dir = "~";
+        if(args[1]!=NULL){
+            dir = args[1];
+        }
+        if(chdir(dir)<0){
+            mvprintw(*line, 0, "%s", strerror(errno));
+            *line +=1;
+        }
+    }
+    else{
+        execute_command(args, line);
+    }
+}
 
 
 char *str_to_cstr(String str)
@@ -215,6 +246,8 @@ int main()
             case ctrl('c'):
                 line++;
                 command = (String){0}; 
+                history_index = -1;
+                command_pos = 0;
                 break;
             case KEY_BACKSPACE:
             case 8:
