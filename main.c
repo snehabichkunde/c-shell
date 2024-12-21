@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include <assert.h>
 #include<stdbool.h>
 #include<stdlib.h>
 #include<string.h>
@@ -6,6 +7,7 @@
 #include<ncurses.h>
 #include<unistd.h>
 #include<sys/wait.h>
+#include <ctype.h>
 #include <curses.h>
 
 #define ctrl(x) ((x)& 0x1f)
@@ -138,10 +140,16 @@ void handle_command(char** args, size_t* line){
     }
     if(strcmp(args[0], "exit")==0){
         int exit_code = 0;
+        endwin();
         if(args[1]!=NULL){
+            for(size_t i=0; args[1][i]!='\0';i++){
+                if(!isdigit(args[1][i])){
+                    fprintf(stderr, "number argument is requried - %s\n" , args[1]);
+                    break;
+                }
+            }
             exit_code = strtol(args[1], NULL, 10);
         }
-        endwin();
         printf("exit\n");
         exit(exit_code);
     }
@@ -170,28 +178,51 @@ char *str_to_cstr(String str)
 }
 
 char **parse_command(char *command) {
-    char *cur = strtok(command, " ");
-    if (cur == NULL) {
+	char const *marker = &command[strlen(command) + 1];
+	char *cur = strtok(command, " ");
+	if(cur == NULL) {
+		return NULL;
+	}
+	size_t args_s = 8;
+	char **args = malloc(sizeof(char*)*args_s);
+    if (args == NULL) {
         return NULL;
     }
+	size_t args_cur = 0;
+	char **resized;
+	while(cur != NULL) {
+		if(args_cur+2 >= args_s) {
+			args_s *= 2;
+			resized = realloc(args, sizeof(char*)*args_s);
+			if (resized == NULL) {
+				free(args);
+				return false;
+			}
+			args = resized;
+		}
+		while(command[0] != '\0') command++;
+		command++;
+		assert(command);
+		if(marker < command && command[0] == '\'') {
+			command++;
+			args[args_cur++] = cur;
+			cur = command;
+			args[args_cur++] = cur;
+			while(command[0] != '\'' && command[0] != '\0') command++;
+			if(command[0] == '\0') break;
+			command[0] = '\0';
+			command++;
+			cur = strtok(command, " ");
+			continue;
+		}
+		
+		args[args_cur++] = cur;
+		cur = strtok(NULL, " ");
+	}
 
-    size_t args_s = 8;
-    char **args = malloc(sizeof(char*) * args_s);
-    size_t args_cur = 0;
+	args[args_cur] = NULL;
 
-    while (cur != NULL) {
-        if (args_cur >= args_s) {
-            args_s *= 2;
-            args = realloc(args, sizeof(char*) * args_s);
-        }
-
-        args[args_cur++] = cur;
-        cur = strtok(NULL, " ");
-    }
-
-    args[args_cur] = NULL;
-
-    return args;
+	return args;
 }
 
 int main()
