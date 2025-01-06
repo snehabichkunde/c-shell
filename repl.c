@@ -50,8 +50,9 @@ bool shell_readline(Repl *repl)
 		getmaxyx(stdscr, height, width);
 		clear_line(repl->buffer, line, width);
 		
-		if(line >= height) top_row = line - height+1;
 		mvwprintw(repl->buffer, line, 0, "%s%.*s", SHELL_PROMPT, (int)command.count, command.data);
+		if(line >= height) top_row = line - height+1;
+
 		if (position > command.count)
 			position = command.count;
 
@@ -60,9 +61,13 @@ bool shell_readline(Repl *repl)
 
 		ch = wgetch(repl->buffer);
 		switch (ch) {
+			case KEY_RESIZE:
+				getmaxyx(stdscr, height, width);
+				wresize(repl->buffer, height, width);
+				break;
 			case KEY_ENTER:
 			case '\n': {
-				line++;
+				line += 1 + (command.count+SSTR_LEN(SHELL_PROMPT))/width;
 				if (command.count == 0)
 					continue;
 				repl->line = line;
