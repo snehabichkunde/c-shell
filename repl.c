@@ -20,7 +20,7 @@ bool shell_repl_initialize(Repl *repl) {
 	size_t width;
 	size_t height;
 	getmaxyx(stdscr, height, width);
-	repl->buffer = newpad(width, height);
+	repl->buffer = newpad( height, width);
 
 	keypad(repl->buffer, TRUE);
 	scrollok(repl->buffer, TRUE);
