@@ -6,7 +6,7 @@
 #include "shell.h"
 #define ctrl(x) ((x) & 0x1f)
 
-static const char SHELL_PROMPT[] = "[canosh]$ ";
+static const char SHELL_PROMPT[] = "[my_shell]$ ";
 static const Repl REPL_INIT = { .is_running = true };
 
 static
@@ -52,11 +52,11 @@ bool shell_readline(Repl *repl)
 		
 		if(line >= height) top_row = line - height+1;
 		mvwprintw(repl->buffer, line, 0, "%s%.*s", SHELL_PROMPT, (int)command.count, command.data);
-		prefresh(repl->buffer, top_row, 0, 0, 0, height-1, width-1);
 		if (position > command.count)
 			position = command.count;
 
 		wmove(repl->buffer, line, SSTR_LEN(SHELL_PROMPT) + position);
+		prefresh(repl->buffer, top_row, 0, 0, 0, height-1, width-1);
 
 		ch = wgetch(repl->buffer);
 		switch (ch) {
