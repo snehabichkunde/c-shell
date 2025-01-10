@@ -76,7 +76,7 @@ bool shell_readline(Repl *repl)
 				break;
 			case KEY_ENTER:
 			case '\n': {
-				line += 1; // + (command.count+SSTR_LEN(SHELL_PROMPT))/width;
+				line += 1 + (command.count+SSTR_LEN(SHELL_PROMPT))/width;
 				if (command.count == 0)
 					continue;
 				repl->line = line;
@@ -91,6 +91,21 @@ bool shell_readline(Repl *repl)
 				break;
 			case ctrl('e'):
 				position = command.count;
+				break;
+			case ctrl('k'):
+				DA_CHECK_BOUNDS(&repl->clipboard, command.count-position, command.count*2);
+				strncpy(repl->clipboard.data, &command.data[position], sizeof(char)*(command.count-position));
+				repl->clipboard.count = command.count-position;
+				command.count = position;
+				break;
+			case ctrl('y'): 
+				DA_CHECK_BOUNDS(&command, command.count+repl->clipboard.count, command.capacity*2);
+				memmove(&command.data[position+repl->clipboard.count], &command.data[position], 
+						command.count - position);
+				strncpy(&command.data[position], repl->clipboard.data, sizeof(char)*repl->clipboard.count);
+				command.count += repl->clipboard.count;
+				position = command.count;
+				command.data[command.count+1] = '\0';
 				break;
 			case ctrl('c'):
 				line++;
