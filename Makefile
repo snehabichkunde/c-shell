@@ -10,8 +10,6 @@ CFLAGS += -MMD -MP
 CFLAGS += -O2
 
 LDLIBS = -lncurses
-
-VPATH := .
 SRC-OUT := main.c
 SRC-OUT += repl.c
 

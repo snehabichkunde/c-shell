@@ -82,12 +82,21 @@ bool shell_readline(Repl *repl)
 				repl->line = line;
 				repl->input = command;
 			} return true;
+			case ctrl('l'):
+				wclear(repl->buffer);
+				wrefresh(repl->buffer);
+				line = 0;
+				break;
 			case ctrl('d'):
 			case ctrl('q'):
 				repl->is_running = false;
 				return true;
 			case ctrl('a'):
 				position = 0;
+				break;
+			case KEY_LEFT:
+			case ctrl('b'):
+				position -= 1;
 				break;
 			case ctrl('e'):
 				position = command.count;
@@ -97,6 +106,18 @@ bool shell_readline(Repl *repl)
 				strncpy(repl->clipboard.data, &command.data[position], sizeof(char)*(command.count-position));
 				repl->clipboard.count = command.count-position;
 				command.count = position;
+				break;
+			case KEY_RIGHT:
+			case ctrl('f'):
+				position += 1;
+				break;
+			case ctrl('u'):
+				DA_CHECK_BOUNDS(&repl->clipboard, position, command.count*2);
+				memcpy(repl->clipboard.data, command.data, position * sizeof(char));
+				memmove(command.data, &command.data[position], (command.count - position) * sizeof(char));
+				command.count -= position;
+				repl->clipboard.count = position;
+				position = 0;
 				break;
 			case ctrl('y'): 
 				DA_CHECK_BOUNDS(&command, command.count+repl->clipboard.count, command.capacity*2);
@@ -114,13 +135,6 @@ bool shell_readline(Repl *repl)
 			case KEY_BACKSPACE:
 				if (command.count > 0)
 					command.data[--command.count] = '\0';
-				break;
-			case KEY_LEFT:
-				if (position > 0)
-					position--;
-				break;
-			case KEY_RIGHT:
-				position++;
 				break;
 			case KEY_UP:
 				if (repl->command_his.count > 0) {
