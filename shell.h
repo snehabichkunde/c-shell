@@ -3,6 +3,7 @@
 
     #include <stdbool.h>
     #include <stddef.h>
+    #include <ncurses.h>
 
     #define DATA_START_CAPACITY 128
     #define SSTR_LEN(sstr) (sizeof(sstr) - 1)
@@ -73,6 +74,10 @@ int shell_repl_run(void);
 char **parse_command(char *command);
 void execute_command(Repl *repl, char **args, size_t *line);
 void handle_command(Repl *repl, char **args, size_t *line);
+bool shell_repl_initialize(Repl *repl);
+bool shell_readline(Repl *repl);
+bool shell_evaluate(Repl *repl);
+void shell_cleanup(Repl *repl);
 
 
 #endif
